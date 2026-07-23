@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF Documents</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="blue">
+    <strong>PDF Document Portal</strong>
+    <div class="nav-links">
+      <a href="upload/">Upload PDFs</a>
+      <a class="logout" href="#" id="logout">Logout</a>
+    </div>
+  </header>
+  <main>
+    <p class="note">
+      PDFs expire after <span id="ttl"></span> days if not downloaded.
+      Downloaded files are removed from your list immediately.
+    </p>
+    <div id="message" class="flash hidden"></div>
+    <div id="content"><p>Loading...</p></div>
+  </main>
+  <script type="module">
+    import { TTL_DAYS } from "./js/config.js";
+    import { requireAuth, logout } from "./js/auth.js";
+    import { loadManifest, formatDate, expiresAt, downloadPdf } from "./js/portal.js";
+
+    requireAuth();
+    document.getElementById("ttl").textContent = TTL_DAYS;
+    document.getElementById("logout").addEventListener("click", (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    const content = document.getElementById("content");
+    const message = document.getElementById("message");
+
+    async function render() {
+      try {
+        const files = await loadManifest();
+        if (!files.length) {
+          content.innerHTML = "<p>No PDF files available.</p>";
+          return;
+        }
+        const rows = files.map((f) => `
+          <tr>
+            <td>${f.name}</td>
+            <td>${formatDate(f.uploaded)}</td>
+            <td>${formatDate(expiresAt(f.uploaded).toISOString())}</td>
+            <td><a href="#" data-name="${f.name}">Download</a></td>
+          </tr>`).join("");
+        content.innerHTML = `
+          <table>
+            <thead><tr><th>File</th><th>Uploaded</th><th>Expires</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        content.querySelectorAll("a[data-name]").forEach((link) => {
+          link.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const file = files.find((f) => f.name === link.dataset.name);
+            try {
+              await downloadPdf(file);
+              message.textContent = `Downloaded: ${file.name}`;
+              message.classList.remove("hidden", "error");
+              await render();
+            } catch (err) {
+              message.textContent = err.message;
+              message.classList.add("error");
+              message.classList.remove("hidden");
+            }
+          });
+        });
+      } catch (err) {
+        content.innerHTML = `<p class="err">${err.message}</p>`;
+      }
+    }
+    render();
+  </script>
+</body>
+</html>
