@@ -1,4 +1,13 @@
 {
   "ttlDays": 5,
-  "files": []
+  "files": [
+    {
+      "name": "Sample_Invoice.pdf",
+      "uploaded": "2026-07-23 12:06:30"
+    },
+    {
+      "name": "Sample_Shipping_doc.pdf",
+      "uploaded": "2026-07-23 12:06:30"
+    }
+  ]
 }
